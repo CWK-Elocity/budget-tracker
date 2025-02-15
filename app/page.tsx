@@ -155,7 +155,7 @@ export default function Home() {
               type="file"
               name="pdfFile"
               accept="application/pdf"
-              onChange={handleChange}
+              onChange={handleFileChange}
             />
             <Button type="submit" disabled={loading}>
               {loading ? "Przetwarzanie..." : "Zgłoś kupon"}
