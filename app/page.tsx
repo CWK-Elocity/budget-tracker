@@ -18,19 +18,33 @@ export default function Home() {
     file_url: "",
   });
 
-  const [pdfFile, setPdfFile] = useState(null);
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleChange = (e) => {
-    const { name, value, files } = e.target;
-    if (files) {
+  interface FormData {
+    reporter: string;
+    reason: string;
+    amount: number;
+    date: string;
+    ticket_number: string;
+    user_email: string;
+    additional_info: string;
+    file_url: string;
+  }
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { files } = e.target;
+    if (files && files.length > 0) {
       setPdfFile(files[0]);
-    } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit: React.FormEventHandler<HTMLFormElement> = async (e) => {
     e.preventDefault();
     setLoading(true);
 
@@ -49,7 +63,7 @@ export default function Home() {
       fileUrl = data.path;
     }
 
-    const newExpense = {
+    const newExpense: FormData = {
       ...formData,
       amount: parseFloat(formData.amount),
       date: formData.date || new Date().toISOString().split("T")[0], // Ustaw aktualną datę, jeśli puste
@@ -59,9 +73,9 @@ export default function Home() {
     const { error } = await supabase.from("expenses").insert([newExpense]);
 
     if (error) {
-      console.error("Błąd zapisu do bazy:", error);
+      console.error("Error saving to database", error);
     } else {
-      console.log("Pomyślnie zapisano wydatek.");
+      console.log("The expense has been successfully recorded.");
       setFormData({
         reporter: "",
         reason: "",
@@ -87,8 +101,6 @@ export default function Home() {
         <div className="flex flex-col gap-4 items-center sm:items-start mx-auto">
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <Input
-              type="text"
-              name="reporter"
               placeholder="Osoba zgłaszająca"
               value={formData.reporter}
               onChange={handleChange}
