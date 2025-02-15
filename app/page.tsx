@@ -1,101 +1,156 @@
-import Image from "next/image";
+'use client';
+
+import React, { useState } from "react";
+import { supabase } from "../utils/supabaseClient"; // Import Supabase client
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 
 export default function Home() {
+  const [formData, setFormData] = useState({
+    reporter: "",
+    reason: "",
+    amount: "",
+    date: "",
+    ticket_number: "",
+    user_email: "",
+    additional_info: "",
+    file_url: "",
+  });
+
+  const [pdfFile, setPdfFile] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e) => {
+    const { name, value, files } = e.target;
+    if (files) {
+      setPdfFile(files[0]);
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    let fileUrl = "";
+    if (pdfFile) {
+      const fileName = `${Date.now()}-${pdfFile.name}`;
+      const { data, error } = await supabase.storage
+        .from("expenses_files") // Upewnij się, że masz bucket "expenses_files" w Supabase
+        .upload(fileName, pdfFile);
+
+      if (error) {
+        console.error("Błąd przesyłania pliku:", error);
+        setLoading(false);
+        return;
+      }
+      fileUrl = data.path;
+    }
+
+    const newExpense = {
+      ...formData,
+      amount: parseFloat(formData.amount),
+      date: formData.date || new Date().toISOString().split("T")[0], // Ustaw aktualną datę, jeśli puste
+      file_url: fileUrl,
+    };
+
+    const { error } = await supabase.from("expenses").insert([newExpense]);
+
+    if (error) {
+      console.error("Błąd zapisu do bazy:", error);
+    } else {
+      console.log("Pomyślnie zapisano wydatek.");
+      setFormData({
+        reporter: "",
+        reason: "",
+        amount: "",
+        date: "",
+        ticket_number: "",
+        user_email: "",
+        additional_info: "",
+        file_url: "",
+      });
+      setPdfFile(null);
+    }
+
+    setLoading(false);
+  };
+
   return (
     <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
       <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+        <h1 className="text-3xl sm:text-4xl font-bold text-center sm:text-left">
+          Narzędzie do kontroli budżetu
+        </h1>
+        <div className="flex flex-col gap-4 items-center sm:items-start mx-auto">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <Input
+              type="text"
+              name="reporter"
+              placeholder="Osoba zgłaszająca"
+              value={formData.reporter}
+              onChange={handleChange}
+              required
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            <Input
+              type="text"
+              name="reason"
+              placeholder="Powód wydania kuponu"
+              value={formData.reason}
+              onChange={handleChange}
+              required
+            />
+            <Input
+              type="number"
+              name="amount"
+              placeholder="Kwota kuponu"
+              value={formData.amount}
+              onChange={handleChange}
+              required
+            />
+            <Input
+              type="date"
+              name="date"
+              placeholder="Data"
+              value={formData.date}
+              onChange={handleChange}
+            />
+            <Input
+              type="text"
+              name="ticket_number"
+              placeholder="Numer zgłoszenia"
+              value={formData.ticket_number}
+              onChange={handleChange}
+              required
+            />
+            <Input
+              type="email"
+              name="user_email"
+              placeholder="Mail użytkownika"
+              value={formData.user_email}
+              onChange={handleChange}
+              required
+            />
+            <Textarea
+              name="additional_info"
+              placeholder="Dodatkowe informacje"
+              value={formData.additional_info}
+              onChange={handleChange}
+            />
+            <Input
+              type="file"
+              name="pdfFile"
+              accept="application/pdf"
+              onChange={handleChange}
+            />
+            <Button type="submit" disabled={loading}>
+              {loading ? "Przetwarzanie..." : "Zgłoś kupon"}
+            </Button>
+          </form>
         </div>
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
   );
 }
