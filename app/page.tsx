@@ -91,16 +91,17 @@ export default function Home() {
 
     setLoading(false);
   };
-
   return (
     <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
       <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
         <h1 className="text-3xl sm:text-4xl font-bold text-center sm:text-left">
           Narzędzie do kontroli budżetu
         </h1>
-        <div className="flex flex-col gap-4 items-center sm:items-start mx-auto">
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 items-center sm:items-start mx-auto">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <Input
+              type="text"
+              name="reporter"
               placeholder="Osoba zgłaszająca"
               value={formData.reporter}
               onChange={handleChange}
